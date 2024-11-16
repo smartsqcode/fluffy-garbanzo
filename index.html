@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка режима инкогнито</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 60%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .result {
+            font-size: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        .green {
+            color: #fff;
+            background-color: #28a745;
+        }
+        .red {
+            color: #fff;
+            background-color: #dc3545;
+        }
+        .gray {
+            color: #fff;
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Проверка режима инкогнито</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Параметр</th>
+                <th>Значение</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Реальная квота</td>
+                <td id="realQuota">—</td>
+            </tr>
+            <tr>
+                <td>Ожидаемая квота</td>
+                <td id="expectedQuota">—</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="bold result gray" id="result">Выполняется проверка...</div>
+
+    <script>
+        function checkMemoryQuota() {
+            return new Promise(resolve => {
+                const realQuotaEl = document.getElementById("realQuota");
+                const expectedQuotaEl = document.getElementById("expectedQuota");
+                const resultEl = document.getElementById("result");
+
+                if (navigator.webkitTemporaryStorage && navigator.webkitTemporaryStorage.queryUsageAndQuota) {
+                    navigator.webkitTemporaryStorage.queryUsageAndQuota(
+                        (used, quota) => {
+                            const deviceMemoryGB = navigator.deviceMemory || 2; // Объем памяти устройства, по умолчанию 2 ГБ
+                            const maxExpectedQuota = Math.round(2 * deviceMemoryGB * 1024 * 1024 * 1024); // Ожидаемая квота
+
+                            // Обновляем отображение квот
+                            realQuotaEl.textContent = `${quota} байт`;
+                            expectedQuotaEl.textContent = `${maxExpectedQuota} байт`;
+
+                            // Определяем режим инкогнито
+                            const isIncognito = quota < maxExpectedQuota;
+                            if (isIncognito) {
+                                resultEl.textContent = "Режим инкогнито обнаружен";
+                                resultEl.className = "bold result red";
+                            } else {
+                                resultEl.textContent = "Режим инкогнито не обнаружен";
+                                resultEl.className = "bold result green";
+                            }
+                            resolve(isIncognito);
+                        },
+                        () => {
+                            // В случае ошибки
+                            realQuotaEl.textContent = "—";
+                            expectedQuotaEl.textContent = "—";
+                            resultEl.textContent = "Не удалось выполнить проверку";
+                            resultEl.className = "bold result gray";
+                            resolve(false);
+                        }
+                    );
+                } else {
+                    // Если API недоступен
+                    realQuotaEl.textContent = "—";
+                    expectedQuotaEl.textContent = "—";
+                    resultEl.textContent = "API для проверки недоступен";
+                    resultEl.className = "bold result gray";
+                    resolve(false);
+                }
+            });
+        }
+
+        // Запускаем проверку сразу после загрузки страницы
+        window.addEventListener("load", () => {
+            checkMemoryQuota();
+        });
+    </script>
+</body>
+</html>
